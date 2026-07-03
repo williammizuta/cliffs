@@ -1,0 +1,51 @@
+{
+  "name": "cliffs",
+  "version": "0.1.0",
+  "description": "Build CLIs from a folder of commands — the file system is the router",
+  "author": "William Mizuta <william.mizuta@gmail.com>",
+  "type": "module",
+  "main": "index.js",
+  "types": "./index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./index.d.ts",
+      "default": "./index.js"
+    }
+  },
+  "files": [
+    "index.js",
+    "index.d.ts",
+    "lib"
+  ],
+  "scripts": {
+    "test": "node --test 'test/*.test.js'",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/williammizuta/cliffs.git"
+  },
+  "homepage": "https://github.com/williammizuta/cliffs#readme",
+  "bugs": {
+    "url": "https://github.com/williammizuta/cliffs/issues"
+  },
+  "keywords": [
+    "cli",
+    "docopt",
+    "commands",
+    "filesystem-routing",
+    "completion"
+  ],
+  "license": "MIT",
+  "engines": {
+    "node": ">=20.11.0"
+  },
+  "dependencies": {
+    "docopt": "0.6.2"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "eslint": "^10.6.0"
+  }
+}
