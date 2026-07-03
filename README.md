@@ -5,7 +5,7 @@
 
 > Build CLIs from a folder of commands — the file system is the router.
 
-**cliffs** (CLI + FS) builds command line tools from a folder of commands. The directory tree **is** the command tree: no registration, no routing tables, no framework boilerplate. Each command is a plain ES module with a [docopt](http://docopt.org/) string as its interface.
+**cliffs** (CLI + FS) builds command line tools from a folder of commands. The directory tree **is** the command tree: no registration, no routing tables, no framework boilerplate. Each command is a plain ES module with a [docopt](https://docopt.org/) string as its interface.
 
 This strategy has been battle-tested powering dozens of commands in an internal company CLI before being extracted into this library.
 
@@ -52,7 +52,7 @@ Because the CLI can always describe itself (listing subcommands, printing usage)
 npm install cliffs
 ```
 
-Create the entry point:
+Create the entry point in `cli.js`:
 
 ```javascript
 #!/usr/bin/env node
@@ -64,18 +64,19 @@ await run({
 });
 ```
 
-Add it as a binary in your `package.json`:
+Declare it as a binary in your `package.json`:
 
 ```json
 {
   "type": "module",
-  "bin": { "mycli": "./index.js" }
+  "bin": { "mycli": "./cli.js" }
 }
 ```
 
-Create your first command in `commands/hello.js` (see above) and you are done:
+Create your first command in `commands/hello.js` (see above), then link the binary and try it:
 
 ```bash
+$ npm link
 $ mycli
 Available commands:
  - hello
@@ -113,8 +114,20 @@ Commands do not need try/catch: errors are caught by the runner, reported, and m
 TypeScript (or JSDoc) users can type command modules with the exported `Command` and `DocoptArgs` types:
 
 ```javascript
+/** @type {import('cliffs').Command['doc']} */
+export const doc = `
+Greet someone
+Usage:
+  greet <name>
+`;
+
+/** @type {import('cliffs').Command['requirements']} */
+export const requirements = [];
+
 /** @type {import('cliffs').Command['run']} */
-export function run(args) { /* ... */ }
+export function run(args) {
+  console.log(`Hi, ${args['<name>']}!`);
+}
 ```
 
 ## Routing rules
@@ -136,10 +149,12 @@ The CLI ships a builtin `completion` command (available unless you define your o
 
 ```bash
 # Bash
-mycli completion bash > /usr/local/etc/bash_completion.d/mycli
-# or: echo 'source <(mycli completion bash)' >> ~/.bashrc
+echo 'source <(mycli completion bash)' >> ~/.bashrc
+# or save it into your completions directory, e.g.:
+#   mycli completion bash > /etc/bash_completion.d/mycli                 (Linux)
+#   mycli completion bash > /opt/homebrew/etc/bash_completion.d/mycli    (macOS + Homebrew)
 
-# Zsh
+# Zsh — the source line must come after `compinit` in ~/.zshrc
 echo 'source <(mycli completion zsh)' >> ~/.zshrc
 ```
 
@@ -150,9 +165,9 @@ The scripts are also available programmatically via `completionScript(name, 'bas
 | Code | Meaning |
 | --- | --- |
 | 0 | Success (including help and listings) |
-| 1 | Command not found |
+| 1 | Command not found (also `--version` when no version is configured) |
 | 2 | Ambiguous command prefix |
-| 3 | Misconfigured CLI: missing commands directory, command module that fails to load or lacks `doc`/`run` exports, or an invalid docopt string |
+| 3 | Misconfigured CLI: missing commands directory, a command module that fails to load or does not export a `doc` string and a `run` function, or an invalid docopt string |
 | 4 | A requirement failed |
 | 5 | The command threw at runtime |
 | 64 | Usage error — the arguments did not match the command's `doc` ([EX_USAGE](https://man.freebsd.org/cgi/man.cgi?query=sysexits)) |
@@ -180,14 +195,49 @@ Convention: commands can import components; components can import components; co
 ## API
 
 ```javascript
-import { run, completionScript, resolveCommand, listCommands, EXIT_CODES } from 'cliffs';
+import {
+  run,
+  completionScript,
+  resolveCommand,
+  listCommands,
+  EXIT_CODES,
+  SUPPORTED_SHELLS,
+} from 'cliffs';
 ```
 
 - `run({ name, commandsDir, argv?, version? })` — resolve and execute a command. `name` is the binary name (used in completion and messages), `commandsDir` is a path or `file://` URL, `argv` defaults to `process.argv.slice(2)`. When `version` is provided, `mycli --version` (or `-V`) prints it; without it, `--version` reports that no version is configured. Returns the exit code.
 - `completionScript(name, shell)` — returns the bash or zsh completion script for a CLI named `name`.
-- `resolveCommand(commandsDir, argv)` — the pure routing step, useful for testing. Returns `{ type: 'command' | 'list' | 'not-found' | 'ambiguous', ... }`.
-- `listCommands(dir)` — the command names available in a directory.
+- `resolveCommand(commandsDir, argv)` — the routing step alone: walks the filesystem but executes nothing. Returns a `CommandResolution`.
+- `listCommands(dir)` — the command names available in a directory, sorted alphabetically.
 - `EXIT_CODES` — the table above, by name.
+- `SUPPORTED_SHELLS` — `['bash', 'zsh']`.
+
+The type definitions also export `Command`, `DocoptArgs`, `CommandResolution`, `RunOptions` and `Shell` for TypeScript and JSDoc users.
+
+### Testing your CLI
+
+`run()` never calls `process.exit`, takes `argv` explicitly and returns the exit code, so end-to-end tests are plain function calls:
+
+```javascript
+import { run, EXIT_CODES } from 'cliffs';
+
+const code = await run({
+  name: 'mycli',
+  commandsDir: new URL('./commands/', import.meta.url),
+  argv: ['hello', 'Ana'],
+});
+assert.equal(code, EXIT_CODES.success);
+```
+
+For routing-only assertions, use `resolveCommand`:
+
+```javascript
+import { resolveCommand } from 'cliffs';
+
+const resolution = resolveCommand('./commands', ['m', 'a', '2', '3']);
+assert.equal(resolution.type, 'command');
+assert.deepEqual(resolution.args, ['2', '3']);
+```
 
 ## Design notes
 
@@ -203,6 +253,17 @@ import { run, completionScript, resolveCommand, listCommands, EXIT_CODES } from 
 - Optional builtin `help` command
 - Fish completion
 
+## Development
+
+```bash
+npm test                       # run the test suite
+npm run lint                   # eslint
+npm run test:coverage          # test suite with a coverage report
+npm run test:update-snapshots  # refresh snapshots after an intentional output change
+```
+
+Some tests are snapshot-based (completion scripts, help output, listings). If you intentionally change user-facing output, regenerate the snapshots and include the updated `test/*.snapshot` files in your commit.
+
 ## License
 
-MIT
+[MIT](./LICENSE)

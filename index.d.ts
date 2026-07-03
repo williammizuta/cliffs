@@ -10,7 +10,7 @@ export type Command = {
   /** Async checks run concurrently before `run`; throw to abort with exit code 4. */
   requirements?: Array<() => void | Promise<void>>;
   /** Command logic. Receives the docopt-parsed arguments. May be async. */
-  run: (args: DocoptArgs) => unknown;
+  run: (args: DocoptArgs) => void | Promise<void>;
 };
 
 export type RunOptions = {

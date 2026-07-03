@@ -1,8 +1,10 @@
 # Changelog
 
+All notable changes to this project are documented in this file. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project adheres to [Semantic Versioning](https://semver.org/).
+
 ## 0.1.0 - Unreleased
 
-Initial release.
+### Added
 
 - Filesystem routing: the directory tree under `commandsDir` is the command tree.
 - docopt-based command contract: each command exports `doc`, `run` and optional `requirements`.
