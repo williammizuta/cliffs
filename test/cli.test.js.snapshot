@@ -1,0 +1,7 @@
+exports[`help output matches the snapshot 1`] = `
+"Say hello\\nUsage:\\n  hello [<name>] [--shout]\\n\\nOptions:\\n  --shout  Print the greeting in uppercase\\n"
+`;
+
+exports[`root listing matches the snapshot 1`] = `
+"Available commands:\\n - hello\\n - math\\n"
+`;

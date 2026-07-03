@@ -30,6 +30,14 @@ test('prints the doc on --help', () => {
   assert.match(output, /Usage:\n {2}hello \[<name>\] \[--shout\]/u);
 });
 
+test('help output matches the snapshot', (context) => {
+  context.assert.snapshot(runCli(['hello', '--help']));
+});
+
+test('root listing matches the snapshot', (context) => {
+  context.assert.snapshot(runCli([]));
+});
+
 test('fails with exit code 64 and prints the doc on invalid docopt input', () => {
   assert.throws(() => runCli(['math', 'add', '1'], { stdio: 'pipe' }), (error) => {
     assert.equal(error.status, 64);

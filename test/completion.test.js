@@ -22,3 +22,11 @@ test('sanitizes CLI names for shell function names', () => {
 test('rejects unsupported shells', () => {
   assert.throws(() => completionScript('mycli', 'fish'), /Unsupported shell: fish/u);
 });
+
+test('bash completion script matches the snapshot', (context) => {
+  context.assert.snapshot(completionScript('mycli', 'bash'));
+});
+
+test('zsh completion script matches the snapshot', (context) => {
+  context.assert.snapshot(completionScript('mycli', 'zsh'));
+});
