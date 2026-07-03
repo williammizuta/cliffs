@@ -23,5 +23,5 @@ Completion scripts, help output and listings are snapshot-tested. When intention
 
 ## Conventions
 
-- Commit messages: Portuguese, imperative mood, one short line (e.g. "Adiciona…", "Corrige…"). A git hook prefixes the branch name — don't add it yourself.
+- Commit messages: English, imperative mood, one short line (e.g. "Add…", "Fix…").
 - Update CHANGELOG.md when changing user-facing behavior.
