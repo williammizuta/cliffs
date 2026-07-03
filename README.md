@@ -1,5 +1,8 @@
 # cliffs
 
+[![CI](https://github.com/williammizuta/cliffs/actions/workflows/ci.yaml/badge.svg)](https://github.com/williammizuta/cliffs/actions/workflows/ci.yaml)
+[![npm](https://img.shields.io/npm/v/cliffs)](https://www.npmjs.com/package/cliffs)
+
 > Build CLIs from a folder of commands — the file system is the router.
 
 **cliffs** (CLI + FS) builds command line tools from a folder of commands. The directory tree **is** the command tree: no registration, no routing tables, no framework boilerplate. Each command is a plain ES module with a [docopt](http://docopt.org/) string as its interface.
@@ -107,6 +110,13 @@ export const requirements = [
 
 Commands do not need try/catch: errors are caught by the runner, reported, and mapped to an exit code. Invalid arguments print the `doc` to stderr and exit with code 64 instead of showing a stack trace.
 
+TypeScript (or JSDoc) users can type command modules with the exported `Command` and `DocoptArgs` types:
+
+```javascript
+/** @type {import('cliffs').Command['run']} */
+export function run(args) { /* ... */ }
+```
+
 ## Routing rules
 
 Given `mycli a b c`:
@@ -116,7 +126,7 @@ Given `mycli a b c`:
 3. Zero matches → `Command x not found` (exit 1). Multiple matches → candidates are listed (exit 2).
 4. Running out of args on a directory lists its subcommands alphabetically (exit 0) — this is also what powers shell completion.
 
-Only directories and `.js` files are considered: dotfiles, READMEs and other stray files never become commands. Matching is done on command names (without the `.js` extension). If a directory and a file share a name (`repo/` and `repo.js`), the directory wins — avoid this.
+Only directories and `.js` files are considered: dotfiles, READMEs and other stray files never become commands. Symbolic links are followed. Matching is done on command names (without the `.js` extension). If a directory and a file share a name (`repo/` and `repo.js`), the directory wins — avoid this.
 
 `--help`/`-h` anywhere in the arguments requests help for the resolved command, so commands never receive them as argument values.
 
@@ -173,7 +183,7 @@ Convention: commands can import components; components can import components; co
 import { run, completionScript, resolveCommand, listCommands, EXIT_CODES } from 'cliffs';
 ```
 
-- `run({ name, commandsDir, argv?, version? })` — resolve and execute a command. `name` is the binary name (used in completion and messages), `commandsDir` is a path or `file://` URL, `argv` defaults to `process.argv.slice(2)`. When `version` is provided, `mycli --version` (or `-V`) prints it. Returns the exit code.
+- `run({ name, commandsDir, argv?, version? })` — resolve and execute a command. `name` is the binary name (used in completion and messages), `commandsDir` is a path or `file://` URL, `argv` defaults to `process.argv.slice(2)`. When `version` is provided, `mycli --version` (or `-V`) prints it; without it, `--version` reports that no version is configured. Returns the exit code.
 - `completionScript(name, shell)` — returns the bash or zsh completion script for a CLI named `name`.
 - `resolveCommand(commandsDir, argv)` — the pure routing step, useful for testing. Returns `{ type: 'command' | 'list' | 'not-found' | 'ambiguous', ... }`.
 - `listCommands(dir)` — the command names available in a directory.

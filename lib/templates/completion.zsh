@@ -27,4 +27,6 @@ __CLI_FN__() {
   compadd -a completions
 }
 
-compdef __CLI_FN__ __CLI_NAME__
+if (( $+functions[compdef] )); then
+  compdef __CLI_FN__ __CLI_NAME__
+fi

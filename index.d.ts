@@ -1,5 +1,18 @@
 export type Shell = 'bash' | 'zsh';
 
+/** The shape docopt gives to parsed arguments. */
+export type DocoptArgs = Record<string, string | number | boolean | string[] | null>;
+
+/** The contract every file in `commandsDir` must follow. */
+export type Command = {
+  /** docopt string: both the help text and the argument grammar. */
+  doc: string;
+  /** Async checks run concurrently before `run`; throw to abort with exit code 4. */
+  requirements?: Array<() => void | Promise<void>>;
+  /** Command logic. Receives the docopt-parsed arguments. May be async. */
+  run: (args: DocoptArgs) => unknown;
+};
+
 export type RunOptions = {
   /** Binary name, used in completion scripts and error messages. */
   name: string;

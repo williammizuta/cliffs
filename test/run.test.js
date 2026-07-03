@@ -43,6 +43,11 @@ test('exits 3 when a command is missing doc or run exports', () => {
   assert.match(error.stderr, /must export `doc` string and `run` function/u);
 });
 
+test('exits 3 when doc or run exports have the wrong type', () => {
+  const error = runCliExpectingFailure(['badtypes'], 3);
+  assert.match(error.stderr, /must export `doc` string and `run` function/u);
+});
+
 test('exits 4 with a clean message when a requirement fails', () => {
   const error = runCliExpectingFailure(['needy'], 4);
   assert.equal(error.stderr, 'THE_DEPENDENCY is not installed\n');
@@ -77,6 +82,18 @@ test('prints a message when the commands directory is empty', async (context) =>
   const code = await run({ commandsDir: dir, name: 'emptycli' });
   assert.equal(code, 0);
   assert.equal(log.mock.calls[0].arguments[0], 'No commands found');
+});
+
+test('reports when --version is used but no version is configured', async (context) => {
+  const errorLog = context.mock.method(console, 'error', () => null);
+  const code = await run({
+    argv: ['--version'],
+    commandsDir: fileURLToPath(new URL('./fixtures/commands/', import.meta.url)),
+    name: 'noversion',
+  });
+  process.exitCode = 0;
+  assert.equal(code, 1);
+  assert.equal(errorLog.mock.calls[0].arguments[0], 'noversion: version not configured');
 });
 
 test('throws when name or commandsDir is missing', async () => {

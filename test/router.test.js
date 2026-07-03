@@ -1,4 +1,7 @@
 import assert from 'node:assert/strict';
+import { mkdirSync, mkdtempSync, symlinkSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { test } from 'node:test';
 import { fileURLToPath } from 'node:url';
 import { resolveCommand } from '../lib/router.js';
@@ -69,4 +72,28 @@ test('prefers the directory when a directory and a file share a name', () => {
   const resolution = resolveCommand(collisionDir, ['dup']);
   assert.equal(resolution.type, 'list');
   assert.deepEqual(resolution.commands, ['child']);
+});
+
+test('resolves a prefix whose candidates share a single name', () => {
+  const resolution = resolveCommand(collisionDir, ['du']);
+  assert.equal(resolution.type, 'list');
+  assert.deepEqual(resolution.commands, ['child']);
+});
+
+test('follows symlinked commands and directories', { skip: process.platform === 'win32' }, () => {
+  const dir = mkdtempSync(join(tmpdir(), 'cliffs-symlink-'));
+  symlinkSync(join(commandsDir, 'hello.js'), join(dir, 'linked.js'));
+  symlinkSync(join(commandsDir, 'repo'), join(dir, 'tree'));
+  mkdirSync(join(dir, 'broken-target'));
+  symlinkSync(join(dir, 'broken-target', 'missing.js'), join(dir, 'dangling.js'));
+
+  assert.deepEqual(resolveCommand(dir, []).commands, ['broken-target', 'linked', 'tree']);
+
+  const file = resolveCommand(dir, ['linked']);
+  assert.equal(file.type, 'command');
+  assert.match(file.script, /linked\.js$/u);
+
+  const nested = resolveCommand(dir, ['tree', 'clone']);
+  assert.equal(nested.type, 'command');
+  assert.match(nested.script, /clone\.js$/u);
 });

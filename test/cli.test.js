@@ -12,11 +12,8 @@ const runCli = function(args, options = {}) {
   });
 };
 
-test('lists commands at the root', () => {
-  const output = runCli([]);
-  assert.match(output, /Available commands:/u);
-  assert.match(output, / - hello/u);
-  assert.match(output, / - math/u);
+test('lists commands at the root in alphabetical order', () => {
+  assert.equal(runCli([]), 'Available commands:\n - hello\n - math\n');
 });
 
 test('runs a top-level command with docopt args', () => {

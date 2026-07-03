@@ -108,7 +108,7 @@ const executeScript = async function(script, args, helpRequested) {
 
   const { doc, requirements = [], run: execute } = commandModule;
 
-  if (!doc || !execute) {
+  if (typeof doc !== 'string' || typeof execute !== 'function') {
     console.error(`Command ${script} is not configured. It must export \`doc\` string and \`run\` function`);
     return finish(EXIT_CODES.misconfigured);
   }
@@ -161,9 +161,13 @@ export async function run(options) {
     return finish(EXIT_CODES.misconfigured);
   }
 
-  if (options.version && (argv[0] === '--version' || argv[0] === '-V')) {
-    console.log(options.version);
-    return finish(EXIT_CODES.success);
+  if (argv[0] === '--version' || argv[0] === '-V') {
+    if (options.version) {
+      console.log(options.version);
+      return finish(EXIT_CODES.success);
+    }
+    console.error(`${name}: version not configured`);
+    return finish(EXIT_CODES.commandNotFound);
   }
 
   const helpRequested = argv.includes('--help') || argv.includes('-h');
