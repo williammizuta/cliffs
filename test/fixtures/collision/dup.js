@@ -3,6 +3,6 @@ Usage:
   dup
 `;
 
-export function run(_args) {
+export const run = (_args) => {
   console.log('file');
-}
+};

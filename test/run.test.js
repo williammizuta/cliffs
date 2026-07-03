@@ -1,22 +1,21 @@
+import { EXIT_CODES, run } from '../index.js';
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
-import { mkdtempSync } from 'node:fs';
-import { tmpdir } from 'node:os';
-import { join } from 'node:path';
-import { test } from 'node:test';
 import { fileURLToPath } from 'node:url';
-import { run } from '../index.js';
+import { join } from 'node:path';
+import { mkdtempSync } from 'node:fs';
+import { test } from 'node:test';
+import { tmpdir } from 'node:os';
 
 const cli = fileURLToPath(new URL('./fixtures/app/cli.js', import.meta.url));
+const CUSTOM_EXIT_CODE = 7;
 
-const runCli = function(args) {
-  return execFileSync(process.execPath, [cli, ...args], {
-    encoding: 'utf-8',
-    stdio: 'pipe',
-  });
-};
+const runCli = (args) => execFileSync(process.execPath, [cli, ...args], {
+  encoding: 'utf-8',
+  stdio: 'pipe',
+});
 
-const runCliExpectingFailure = function(args, expectedStatus) {
+const runCliExpectingFailure = (args, expectedStatus) => {
   try {
     runCli(args);
   } catch (error) {
@@ -32,30 +31,30 @@ test('prints the version on --version and -V', () => {
 });
 
 test('exits 2 on an ambiguous prefix and lists the candidates', () => {
-  const error = runCliExpectingFailure(['b'], 2);
+  const error = runCliExpectingFailure(['b'], EXIT_CODES.ambiguousCommand);
   assert.match(error.stderr, /Ambiguous command b/u);
   assert.match(error.stderr, / - boom/u);
   assert.match(error.stderr, / - broken/u);
 });
 
 test('exits 3 when a command is missing doc or run exports', () => {
-  const error = runCliExpectingFailure(['broken'], 3);
+  const error = runCliExpectingFailure(['broken'], EXIT_CODES.misconfigured);
   assert.match(error.stderr, /must export `doc` string and `run` function/u);
 });
 
 test('exits 3 when doc or run exports have the wrong type', () => {
-  const error = runCliExpectingFailure(['badtypes'], 3);
+  const error = runCliExpectingFailure(['badtypes'], EXIT_CODES.misconfigured);
   assert.match(error.stderr, /must export `doc` string and `run` function/u);
 });
 
 test('exits 4 with a clean message when a requirement fails', () => {
-  const error = runCliExpectingFailure(['needy'], 4);
+  const error = runCliExpectingFailure(['needy'], EXIT_CODES.requirementsFailed);
   assert.equal(error.stderr, 'THE_DEPENDENCY is not installed\n');
   assert.doesNotMatch(error.stdout, /should never run/u);
 });
 
 test('exits 5 when a command throws at runtime', () => {
-  const error = runCliExpectingFailure(['boom'], 5);
+  const error = runCliExpectingFailure(['boom'], EXIT_CODES.runtimeError);
   assert.match(error.stderr, /kaboom/u);
 });
 
@@ -66,21 +65,21 @@ test('a commands/completion.js takes precedence over the builtin', () => {
 test('exits 3 when the commands directory does not exist', () => {
   const badCli = fileURLToPath(new URL('./fixtures/bad-dir-cli.js', import.meta.url));
   assert.throws(() => execFileSync(process.execPath, [badCli], { encoding: 'utf-8', stdio: 'pipe' }), (error) => {
-    assert.equal(error.status, 3);
+    assert.equal(error.status, EXIT_CODES.misconfigured);
     assert.match(error.stderr, /Commands directory not found/u);
     return true;
   });
 });
 
 test('preserves an exit code set by the command itself', () => {
-  runCliExpectingFailure(['exits'], 7);
+  runCliExpectingFailure(['exits'], CUSTOM_EXIT_CODE);
 });
 
 test('prints a message when the commands directory is empty', async (context) => {
   const dir = mkdtempSync(join(tmpdir(), 'cliffs-'));
   const log = context.mock.method(console, 'log', () => null);
   const code = await run({ commandsDir: dir, name: 'emptycli' });
-  assert.equal(code, 0);
+  assert.equal(code, EXIT_CODES.success);
   assert.equal(log.mock.calls[0].arguments[0], 'No commands found');
 });
 
@@ -92,7 +91,7 @@ test('reports when --version is used but no version is configured', async (conte
     name: 'noversion',
   });
   process.exitCode = 0;
-  assert.equal(code, 1);
+  assert.equal(code, EXIT_CODES.commandNotFound);
   assert.equal(errorLog.mock.calls[0].arguments[0], 'noversion: version not configured');
 });
 

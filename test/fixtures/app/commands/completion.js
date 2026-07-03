@@ -3,6 +3,6 @@ Usage:
   completion
 `;
 
-export function run(_args) {
+export const run = (_args) => {
   console.log('custom completion command');
-}
+};

@@ -1,5 +1,5 @@
 export const requirements = [
-  async function() {
+  () => {
     throw new Error('THE_DEPENDENCY is not installed');
   },
 ];
@@ -9,6 +9,6 @@ Usage:
   needy
 `;
 
-export function run(_args) {
+export const run = (_args) => {
   console.log('should never run');
-}
+};

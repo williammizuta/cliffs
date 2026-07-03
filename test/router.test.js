@@ -1,10 +1,10 @@
-import assert from 'node:assert/strict';
 import { mkdirSync, mkdtempSync, symlinkSync } from 'node:fs';
-import { tmpdir } from 'node:os';
-import { join } from 'node:path';
-import { test } from 'node:test';
+import assert from 'node:assert/strict';
 import { fileURLToPath } from 'node:url';
+import { join } from 'node:path';
 import { resolveCommand } from '../lib/router.js';
+import { test } from 'node:test';
+import { tmpdir } from 'node:os';
 
 const commandsDir = fileURLToPath(new URL('./fixtures/commands/', import.meta.url));
 const collisionDir = fileURLToPath(new URL('./fixtures/collision/', import.meta.url));
@@ -25,14 +25,14 @@ test('resolves a top-level command', () => {
 test('resolves a nested command and keeps the remaining args', () => {
   const resolution = resolveCommand(commandsDir, ['repo', 'clone', 'my-repo']);
   assert.equal(resolution.type, 'command');
-  assert.match(resolution.script, /repo\/clone\.js$/u);
+  assert.match(resolution.script, /repo[\\/]clone\.js$/u);
   assert.deepEqual(resolution.args, ['my-repo']);
 });
 
 test('resolves commands by unique prefix', () => {
   const resolution = resolveCommand(commandsDir, ['rep', 'cl', 'my-repo']);
   assert.equal(resolution.type, 'command');
-  assert.match(resolution.script, /repo\/clone\.js$/u);
+  assert.match(resolution.script, /repo[\\/]clone\.js$/u);
   assert.deepEqual(resolution.args, ['my-repo']);
 });
 

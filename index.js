@@ -1,8 +1,8 @@
 import { DocoptExit, docopt } from 'docopt';
-import { statSync } from 'node:fs';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { completionScript } from './lib/completion.js';
 import { resolveCommand } from './lib/router.js';
+import { statSync } from 'node:fs';
 
 export { completionScript, SUPPORTED_SHELLS } from './lib/completion.js';
 export { listCommands, resolveCommand } from './lib/router.js';
@@ -17,12 +17,12 @@ export const EXIT_CODES = {
   usageError: 64,
 };
 
-const finish = function(code) {
+const finish = (code) => {
   process.exitCode = code;
   return code;
 };
 
-const isDirectory = function(path) {
+const isDirectory = (path) => {
   try {
     return statSync(path).isDirectory();
   } catch (_error) {
@@ -30,7 +30,7 @@ const isDirectory = function(path) {
   }
 };
 
-const printList = function(commands) {
+const printList = (commands) => {
   if (commands.length === 0) {
     console.log('No commands found');
     return;
@@ -38,14 +38,14 @@ const printList = function(commands) {
   console.log(`Available commands:\n${commands.map((command) => ` - ${command}`).join('\n')}`);
 };
 
-const runCompletionBuiltin = function(name, params, helpRequested) {
+const runCompletionBuiltin = (name, params, helpRequested) => {
   const usage = `Usage: ${name} completion (bash|zsh)`;
   if (helpRequested) {
     console.log(usage);
     return finish(EXIT_CODES.success);
   }
 
-  const shell = params[1];
+  const [, shell] = params;
   if (shell === 'bash' || shell === 'zsh') {
     process.stdout.write(completionScript(name, shell));
     return finish(EXIT_CODES.success);
@@ -54,7 +54,7 @@ const runCompletionBuiltin = function(name, params, helpRequested) {
   return finish(EXIT_CODES.usageError);
 };
 
-const handleResolution = function(resolution) {
+const handleResolution = (resolution) => {
   if (resolution.type === 'list') {
     printList(resolution.commands);
     return finish(EXIT_CODES.success);
@@ -73,7 +73,7 @@ const handleResolution = function(resolution) {
   return null;
 };
 
-const loadCommand = async function(script) {
+const loadCommand = async (script) => {
   try {
     return await import(pathToFileURL(script));
   } catch (error) {
@@ -82,12 +82,30 @@ const loadCommand = async function(script) {
   }
 };
 
-const failedRequirements = async function(requirements) {
-  const results = await Promise.allSettled(requirements.map((requirement) => requirement()));
-  return results.filter((result) => result.status === 'rejected');
+const loadValidCommand = async (script) => {
+  const commandModule = await loadCommand(script);
+  if (!commandModule) {
+    return null;
+  }
+
+  const { doc, run: execute } = commandModule;
+  if (typeof doc !== 'string' || typeof execute !== 'function') {
+    console.error(`Command ${script} is not configured. It must export \`doc\` string and \`run\` function`);
+    return null;
+  }
+  return commandModule;
 };
 
-const parseCommandArgs = function(doc, argv) {
+const reportFailedRequirements = async (requirements) => {
+  const results = await Promise.allSettled(requirements.map(async (requirement) => await requirement()));
+  const failures = results.filter((result) => result.status === 'rejected');
+  for (const failure of failures) {
+    console.error(failure.reason instanceof Error ? failure.reason.message : String(failure.reason));
+  }
+  return failures.length > 0;
+};
+
+const parseCommandArgs = (doc, argv) => {
   try {
     const args = docopt(doc, {
       argv,
@@ -100,32 +118,17 @@ const parseCommandArgs = function(doc, argv) {
   }
 };
 
-const executeScript = async function(script, args, helpRequested) {
-  const commandModule = await loadCommand(script);
-  if (!commandModule) {
-    return finish(EXIT_CODES.misconfigured);
+const runCommand = async (script, execute, args) => {
+  try {
+    await execute(args);
+    return finish(process.exitCode ?? EXIT_CODES.success);
+  } catch (error) {
+    console.error(`Error running command ${script}`, error);
+    return finish(EXIT_CODES.runtimeError);
   }
+};
 
-  const { doc, requirements = [], run: execute } = commandModule;
-
-  if (typeof doc !== 'string' || typeof execute !== 'function') {
-    console.error(`Command ${script} is not configured. It must export \`doc\` string and \`run\` function`);
-    return finish(EXIT_CODES.misconfigured);
-  }
-
-  if (helpRequested) {
-    console.log(doc.trim());
-    return finish(EXIT_CODES.success);
-  }
-
-  const failures = await failedRequirements(requirements);
-  if (failures.length > 0) {
-    for (const failure of failures) {
-      console.error(failure.reason instanceof Error ? failure.reason.message : String(failure.reason));
-    }
-    return finish(EXIT_CODES.requirementsFailed);
-  }
-
+const parseAndRun = (script, { args, doc, execute }) => {
   const parsed = parseCommandArgs(doc, args);
 
   if (parsed.status === 'usage') {
@@ -138,38 +141,39 @@ const executeScript = async function(script, args, helpRequested) {
     return finish(EXIT_CODES.misconfigured);
   }
 
-  try {
-    await execute(parsed.args);
-    return finish(process.exitCode ?? EXIT_CODES.success);
-  } catch (error) {
-    console.error(`Error running command ${script}`, error);
-    return finish(EXIT_CODES.runtimeError);
-  }
+  return runCommand(script, execute, parsed.args);
 };
 
-export async function run(options) {
-  const { name, commandsDir } = options;
-  if (!name || !commandsDir) {
-    throw new TypeError('run() requires `name` and `commandsDir` options');
-  }
-
-  const argv = options.argv ?? process.argv.slice(2);
-  const dir = commandsDir instanceof URL ? fileURLToPath(commandsDir) : commandsDir;
-
-  if (!isDirectory(dir)) {
-    console.error(`Commands directory not found: ${dir}`);
+const executeScript = async (script, args, helpRequested) => {
+  const commandModule = await loadValidCommand(script);
+  if (!commandModule) {
     return finish(EXIT_CODES.misconfigured);
   }
 
-  if (argv[0] === '--version' || argv[0] === '-V') {
-    if (options.version) {
-      console.log(options.version);
-      return finish(EXIT_CODES.success);
-    }
-    console.error(`${name}: version not configured`);
-    return finish(EXIT_CODES.commandNotFound);
+  const { doc, requirements = [], run: execute } = commandModule;
+
+  if (helpRequested) {
+    console.log(doc.trim());
+    return finish(EXIT_CODES.success);
   }
 
+  if (await reportFailedRequirements(requirements)) {
+    return finish(EXIT_CODES.requirementsFailed);
+  }
+
+  return parseAndRun(script, { args, doc, execute });
+};
+
+const printVersion = (version, name) => {
+  if (version) {
+    console.log(version);
+    return finish(EXIT_CODES.success);
+  }
+  console.error(`${name}: version not configured`);
+  return finish(EXIT_CODES.commandNotFound);
+};
+
+const dispatch = (dir, name, argv) => {
   const helpRequested = argv.includes('--help') || argv.includes('-h');
   const params = argv.filter((param) => param !== '--help' && param !== '-h');
 
@@ -184,4 +188,26 @@ export async function run(options) {
   }
 
   return executeScript(resolution.script, resolution.args, helpRequested);
-}
+};
+
+const commandsPath = ({ commandsDir, name }) => {
+  if (!name || !commandsDir) {
+    throw new TypeError('run() requires `name` and `commandsDir` options');
+  }
+  return commandsDir instanceof URL ? fileURLToPath(commandsDir) : commandsDir;
+};
+
+export const run = async (options) => {
+  const dir = commandsPath(options);
+  if (!isDirectory(dir)) {
+    console.error(`Commands directory not found: ${dir}`);
+    return finish(EXIT_CODES.misconfigured);
+  }
+
+  const argv = options.argv ?? process.argv.slice(2);
+  if (argv[0] === '--version' || argv[0] === '-V') {
+    return printVersion(options.version, options.name);
+  }
+
+  return await dispatch(dir, options.name, argv);
+};

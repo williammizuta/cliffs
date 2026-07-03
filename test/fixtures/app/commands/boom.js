@@ -3,6 +3,6 @@ Usage:
   boom
 `;
 
-export function run(_args) {
+export const run = (_args) => {
   throw new Error('kaboom');
-}
+};

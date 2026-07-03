@@ -1,5 +1,5 @@
 export const requirements = [
-  async function() {
+  () => {
     if (!process.env.HOME) {
       throw new Error('HOME environment variable is not set');
     }
@@ -12,6 +12,6 @@ Usage:
   multiply <a> <b>
 `;
 
-export function run(args) {
+export const run = (args) => {
   console.log(Number(args['<a>']) * Number(args['<b>']));
-}
+};

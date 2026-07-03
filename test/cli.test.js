@@ -1,16 +1,15 @@
+import { EXIT_CODES } from '../index.js';
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
-import { test } from 'node:test';
 import { fileURLToPath } from 'node:url';
+import { test } from 'node:test';
 
 const cli = fileURLToPath(new URL('../example/cli.js', import.meta.url));
 
-const runCli = function(args, options = {}) {
-  return execFileSync(process.execPath, [cli, ...args], {
-    encoding: 'utf-8',
-    ...options,
-  });
-};
+const runCli = (args, options = {}) => execFileSync(process.execPath, [cli, ...args], {
+  encoding: 'utf-8',
+  ...options,
+});
 
 test('lists commands at the root in alphabetical order', () => {
   assert.equal(runCli([]), 'Available commands:\n - hello\n - math\n');
@@ -40,7 +39,7 @@ test('root listing matches the snapshot', (context) => {
 
 test('fails with exit code 64 and prints the doc on invalid docopt input', () => {
   assert.throws(() => runCli(['math', 'add', '1'], { stdio: 'pipe' }), (error) => {
-    assert.equal(error.status, 64);
+    assert.equal(error.status, EXIT_CODES.usageError);
     assert.match(error.stderr, /Usage:\n {2}add <a> <b>/u);
     return true;
   });
@@ -48,7 +47,7 @@ test('fails with exit code 64 and prints the doc on invalid docopt input', () =>
 
 test('fails with exit code 1 on unknown command', () => {
   assert.throws(() => runCli(['nope'], { stdio: 'pipe' }), (error) => {
-    assert.equal(error.status, 1);
+    assert.equal(error.status, EXIT_CODES.commandNotFound);
     assert.match(error.stderr, /Command nope not found/u);
     return true;
   });

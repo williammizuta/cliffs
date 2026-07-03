@@ -5,7 +5,7 @@ cliffs is a zero-config CLI framework: the filesystem is the command router. Pla
 ## Commands
 
 - `npm test` — full test suite (node:test, no framework)
-- `npm run lint` — ESLint with the strict `all` preset; must pass before committing
+- `npm run lint` — ESLint with the strict `all` preset plus `eslint-plugin-n`; must pass before committing. Do not add rule exceptions without strong justification.
 - `npm run test:coverage` — suite with a coverage report
 - `npm run test:update-snapshots` — regenerate snapshot files
 

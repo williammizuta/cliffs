@@ -1,8 +1,13 @@
 export const doc = `
+Say hello
 Usage:
-  hello
+  hello [<name>] [--shout]
+
+Options:
+  --shout  Print the greeting in uppercase
 `;
 
-export function run(_args) {
-  console.log('hello');
-}
+export const run = (args) => {
+  const greeting = `Hello, ${args['<name>'] || 'world'}!`;
+  console.log(args['--shout'] ? greeting.toUpperCase() : greeting);
+};

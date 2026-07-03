@@ -1,8 +1,10 @@
+const CUSTOM_EXIT_CODE = 7;
+
 export const doc = `
 Usage:
   exits
 `;
 
-export function run(_args) {
-  process.exitCode = 7;
-}
+export const run = (_args) => {
+  process.exitCode = CUSTOM_EXIT_CODE;
+};

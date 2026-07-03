@@ -4,6 +4,6 @@ Usage:
   add <a> <b>
 `;
 
-export function run(args) {
+export const run = (args) => {
   console.log(Number(args['<a>']) + Number(args['<b>']));
-}
+};

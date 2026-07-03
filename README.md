@@ -1,13 +1,10 @@
 # cliffs
 
 [![CI](https://github.com/williammizuta/cliffs/actions/workflows/ci.yaml/badge.svg)](https://github.com/williammizuta/cliffs/actions/workflows/ci.yaml)
-[![npm](https://img.shields.io/npm/v/cliffs)](https://www.npmjs.com/package/cliffs)
 
 > Build CLIs from a folder of commands — the file system is the router.
 
 **cliffs** (CLI + FS) builds command line tools from a folder of commands. The directory tree **is** the command tree: no registration, no routing tables, no framework boilerplate. Each command is a plain ES module with a [docopt](https://docopt.org/) string as its interface.
-
-This strategy has been battle-tested powering dozens of commands in an internal company CLI before being extracted into this library.
 
 ## The idea
 
@@ -33,10 +30,10 @@ Options:
   --shout  Print the greeting in uppercase
 `;
 
-export function run(args) {
+export const run = (args) => {
   const greeting = `Hello, ${args['<name>'] || 'world'}!`;
   console.log(args['--shout'] ? greeting.toUpperCase() : greeting);
-}
+};
 ```
 
 Because the CLI can always describe itself (listing subcommands, printing usage), you get for free:
@@ -49,8 +46,10 @@ Because the CLI can always describe itself (listing subcommands, printing usage)
 ## Quick start
 
 ```bash
-npm install cliffs
+npm install github:williammizuta/cliffs
 ```
+
+That's the only install step — `docopt`, the single runtime dependency, comes with the package.
 
 Create the entry point in `cli.js`:
 
@@ -95,13 +94,13 @@ Every file in `commandsDir` must export:
 | --- | --- | --- |
 | `doc` | yes | docopt string. Used for `--help`, argument parsing and usage errors. |
 | `run(args)` | yes | Command logic. Receives the object parsed by docopt. May be async. |
-| `requirements` | no | Array of async functions run concurrently before `run`. Throw an `Error` to abort with a clear message — every failure is reported, not just the first. |
+| `requirements` | no | Array of functions (sync or async) run concurrently before `run`. Throw an `Error` to abort with a clear message — every failure is reported, not just the first. |
 
 Requirements example:
 
 ```javascript
 export const requirements = [
-  async function() {
+  () => {
     if (!process.env.MYCLI_HOME) {
       throw new Error('MYCLI_HOME environment variable is not set');
     }
@@ -125,9 +124,9 @@ Usage:
 export const requirements = [];
 
 /** @type {import('cliffs').Command['run']} */
-export function run(args) {
+export const run = (args) => {
   console.log(`Hi, ${args['<name>']}!`);
-}
+};
 ```
 
 ## Routing rules
@@ -246,12 +245,6 @@ assert.deepEqual(resolution.args, ['2', '3']);
 - **No build step.** Plain ESM JavaScript with hand-written TypeScript definitions, Node >= 22.
 - **Commands run from the user's cwd.** The library never calls `process.chdir`, so `resolve('./file.csv')` inside a command behaves as the user expects.
 - **Windows:** routing and execution work everywhere Node runs, but the generated completion scripts are bash/zsh only.
-
-## Roadmap
-
-- `npm create` scaffolder (entry point + example command + imports alias)
-- Optional builtin `help` command
-- Fish completion
 
 ## Development
 

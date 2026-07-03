@@ -3,6 +3,6 @@ Usage:
   clone <name>
 `;
 
-export function run(_args) {
+export const run = (_args) => {
   console.log('clone');
-}
+};

@@ -1,28 +1,35 @@
 import globals from 'globals';
 import js from '@eslint/js';
+import nodePlugin from 'eslint-plugin-n';
+
+const TEST_MAX_STATEMENTS = 20;
 
 export default [
   js.configs.all,
+  nodePlugin.configs['flat/recommended-module'],
   {
     files: ['**/*.js'],
     languageOptions: {
       globals: globals.node,
     },
     rules: {
-      'consistent-return': 'off',
-      'func-names': 'off',
-      'func-style': 'off',
-      'max-lines-per-function': 'off',
-      'max-statements': 'off',
-      'no-console': 'off',
-      'no-magic-numbers': 'off',
+      'no-console': ['error', { allow: ['log', 'error'] }],
+      'no-magic-numbers': ['error', { ignore: [-1, 0, 1, 2] }],
       'no-ternary': 'off',
       'no-unused-vars': ['error', { argsIgnorePattern: '^_', caughtErrorsIgnorePattern: '^_' }],
-      'one-var': 'off',
-      'prefer-arrow-callback': 'off',
-      'prefer-destructuring': 'off',
-      'require-await': 'off',
-      'sort-imports': 'off',
+      'one-var': ['error', 'never'],
+    },
+  },
+  {
+    files: ['test/*.test.js'],
+    rules: {
+      'max-statements': ['error', TEST_MAX_STATEMENTS],
+    },
+  },
+  {
+    files: ['example/cli.js', 'test/fixtures/app/cli.js', 'test/fixtures/bad-dir-cli.js'],
+    rules: {
+      'n/hashbang': 'off',
     },
   },
 ];

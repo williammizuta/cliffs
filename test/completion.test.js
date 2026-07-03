@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
-import { test } from 'node:test';
 import { completionScript } from '../lib/completion.js';
+import { test } from 'node:test';
 
 test('generates a bash completion script bound to the CLI name', () => {
   const script = completionScript('mycli', 'bash');
