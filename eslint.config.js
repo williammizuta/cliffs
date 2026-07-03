@@ -1,3 +1,4 @@
+import globals from 'globals';
 import js from '@eslint/js';
 
 export default [
@@ -5,11 +6,7 @@ export default [
   {
     files: ['**/*.js'],
     languageOptions: {
-      globals: {
-        URL: 'readonly',
-        console: 'readonly',
-        process: 'readonly',
-      },
+      globals: globals.node,
     },
     rules: {
       'consistent-return': 'off',

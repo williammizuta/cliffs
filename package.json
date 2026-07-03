@@ -18,9 +18,10 @@
     "lib"
   ],
   "scripts": {
-    "test": "node --test 'test/*.test.js'",
+    "test": "node --test \"test/*.test.js\"",
     "lint": "eslint .",
-    "lint:fix": "eslint . --fix"
+    "lint:fix": "eslint . --fix",
+    "prepublishOnly": "npm test && npm run lint"
   },
   "repository": {
     "type": "git",
@@ -39,13 +40,14 @@
   ],
   "license": "MIT",
   "engines": {
-    "node": ">=20.11.0"
+    "node": ">=22.0.0"
   },
   "dependencies": {
     "docopt": "0.6.2"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
-    "eslint": "^10.6.0"
+    "eslint": "^10.6.0",
+    "globals": "^17.7.0"
   }
 }

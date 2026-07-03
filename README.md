@@ -46,7 +46,7 @@ Because the CLI can always describe itself (listing subcommands, printing usage)
 ## Quick start
 
 ```bash
-npm install cliffs docopt
+npm install cliffs
 ```
 
 Create the entry point:
@@ -91,7 +91,7 @@ Every file in `commandsDir` must export:
 | --- | --- | --- |
 | `doc` | yes | docopt string. Used for `--help`, argument parsing and usage errors. |
 | `run(args)` | yes | Command logic. Receives the object parsed by docopt. May be async. |
-| `requirements` | no | Array of async functions run before `run`. Throw an `Error` to abort with a clear message. |
+| `requirements` | no | Array of async functions run concurrently before `run`. Throw an `Error` to abort with a clear message — every failure is reported, not just the first. |
 
 Requirements example:
 
@@ -114,9 +114,11 @@ Given `mycli a b c`:
 1. Walk `commandsDir` one arg at a time. A directory descends; a `.js` file is the command and the remaining args go to docopt.
 2. Exact names win. Otherwise a unique prefix matches (`rep` → `repository`).
 3. Zero matches → `Command x not found` (exit 1). Multiple matches → candidates are listed (exit 2).
-4. Running out of args on a directory lists its subcommands (exit 0) — this is also what powers shell completion.
+4. Running out of args on a directory lists its subcommands alphabetically (exit 0) — this is also what powers shell completion.
 
-Only directories and `.js` files are considered: dotfiles, READMEs and other stray files never become commands.
+Only directories and `.js` files are considered: dotfiles, READMEs and other stray files never become commands. Matching is done on command names (without the `.js` extension). If a directory and a file share a name (`repo/` and `repo.js`), the directory wins — avoid this.
+
+`--help`/`-h` anywhere in the arguments requests help for the resolved command, so commands never receive them as argument values.
 
 ## Shell completion
 
@@ -131,7 +133,7 @@ mycli completion bash > /usr/local/etc/bash_completion.d/mycli
 echo 'source <(mycli completion zsh)' >> ~/.zshrc
 ```
 
-The scripts are also available programmatically via `completionScript(name, 'bash' | 'zsh')`. Note that the builtin does not appear in command listings — only files in `commandsDir` do.
+The scripts are also available programmatically via `completionScript(name, 'bash' | 'zsh')`. Note that the builtin does not appear in command listings — only files in `commandsDir` do — and it must be typed in full: prefix matching does not apply to it.
 
 ## Exit codes
 
@@ -145,7 +147,7 @@ The scripts are also available programmatically via `completionScript(name, 'bas
 | 5 | The command threw at runtime |
 | 64 | Usage error — the arguments did not match the command's `doc` ([EX_USAGE](https://man.freebsd.org/cgi/man.cgi?query=sysexits)) |
 
-`run()` sets `process.exitCode` (it never calls `process.exit`, so streams flush and you can run it programmatically) and also returns the code.
+`run()` sets `process.exitCode` (it never calls `process.exit`, so streams flush and you can run it programmatically) and also returns the code. A command that needs a custom exit code can set `process.exitCode` itself — the runner preserves it instead of forcing 0.
 
 ## Recommended app structure
 
@@ -181,7 +183,7 @@ import { run, completionScript, resolveCommand, listCommands, EXIT_CODES } from 
 
 - **Zero config, one dependency.** The only runtime dependency is `docopt`. Everything else is `node:` builtins.
 - **docopt is pinned at 0.6.2** — the package is old but stable and tiny; the docopt language itself is a frozen spec. Vendoring it is an option if the dependency ever becomes a concern.
-- **No build step.** Plain ESM JavaScript with hand-written TypeScript definitions, Node >= 20.11.
+- **No build step.** Plain ESM JavaScript with hand-written TypeScript definitions, Node >= 22.
 - **Commands run from the user's cwd.** The library never calls `process.chdir`, so `resolve('./file.csv')` inside a command behaves as the user expects.
 - **Windows:** routing and execution work everywhere Node runs, but the generated completion scripts are bash/zsh only.
 

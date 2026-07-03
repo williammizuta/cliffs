@@ -4,11 +4,12 @@ import { fileURLToPath } from 'node:url';
 import { resolveCommand } from '../lib/router.js';
 
 const commandsDir = fileURLToPath(new URL('./fixtures/commands/', import.meta.url));
+const collisionDir = fileURLToPath(new URL('./fixtures/collision/', import.meta.url));
 
-test('lists root commands when no args are given', () => {
+test('lists root commands alphabetically when no args are given', () => {
   const resolution = resolveCommand(commandsDir, []);
   assert.equal(resolution.type, 'list');
-  assert.deepEqual(resolution.commands.sort(), ['hello', 'redis', 'repo']);
+  assert.deepEqual(resolution.commands, ['hello', 'redis', 'repo']);
 });
 
 test('resolves a top-level command', () => {
@@ -55,5 +56,17 @@ test('ignores non-JavaScript files', () => {
 test('lists subcommands when the args stop at a folder', () => {
   const resolution = resolveCommand(commandsDir, ['repo']);
   assert.equal(resolution.type, 'list');
-  assert.deepEqual(resolution.commands.sort(), ['clone', 'list']);
+  assert.deepEqual(resolution.commands, ['clone', 'list']);
+});
+
+test('does not match prefixes that include the .js extension', () => {
+  const resolution = resolveCommand(commandsDir, ['hello.j']);
+  assert.equal(resolution.type, 'not-found');
+  assert.equal(resolution.name, 'hello.j');
+});
+
+test('prefers the directory when a directory and a file share a name', () => {
+  const resolution = resolveCommand(collisionDir, ['dup']);
+  assert.equal(resolution.type, 'list');
+  assert.deepEqual(resolution.commands, ['child']);
 });

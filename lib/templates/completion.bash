@@ -17,15 +17,16 @@ __CLI_FN___completions() {
     done
 
     # Try to get completions from the __CLI_NAME__ command
+    # Always pass --help so completion never executes a command
     local completions
     local cmd_output
     if [[ -z "$cmd_path" ]]; then
         # Root level completion
-        cmd_output=$(__CLI_NAME__ 2>/dev/null)
+        cmd_output=$(__CLI_NAME__ --help 2>/dev/null)
     else
         # Nested command completion
         # shellcheck disable=SC2086
-        cmd_output=$(__CLI_NAME__ $cmd_path 2>/dev/null)
+        cmd_output=$(__CLI_NAME__ $cmd_path --help 2>/dev/null)
     fi
 
     # Check if this is a help output (contains "Usage:") or a command list

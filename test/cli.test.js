@@ -53,3 +53,7 @@ test('generates completion scripts via the builtin command', () => {
   const output = runCli(['completion', 'bash']);
   assert.match(output, /complete -F _mycli_completions mycli/u);
 });
+
+test('prints the builtin completion usage on --help', () => {
+  assert.equal(runCli(['completion', '--help']), 'Usage: mycli completion (bash|zsh)\n');
+});

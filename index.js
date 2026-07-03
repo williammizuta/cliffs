@@ -31,24 +31,30 @@ const isDirectory = function(path) {
 };
 
 const printList = function(commands) {
+  if (commands.length === 0) {
+    console.log('No commands found');
+    return;
+  }
   console.log(`Available commands:\n${commands.map((command) => ` - ${command}`).join('\n')}`);
 };
 
-const runCompletionBuiltin = function(name, params) {
+const runCompletionBuiltin = function(name, params, helpRequested) {
+  const usage = `Usage: ${name} completion (bash|zsh)`;
+  if (helpRequested) {
+    console.log(usage);
+    return finish(EXIT_CODES.success);
+  }
+
   const shell = params[1];
   if (shell === 'bash' || shell === 'zsh') {
     process.stdout.write(completionScript(name, shell));
     return finish(EXIT_CODES.success);
   }
-  console.error(`Usage: ${name} completion (bash|zsh)`);
+  console.error(usage);
   return finish(EXIT_CODES.usageError);
 };
 
-const handleResolution = function(resolution, name, params) {
-  if (resolution.type === 'not-found' && resolution.name === 'completion' && params[0] === 'completion') {
-    return runCompletionBuiltin(name, params);
-  }
-
+const handleResolution = function(resolution) {
   if (resolution.type === 'list') {
     printList(resolution.commands);
     return finish(EXIT_CODES.success);
@@ -134,7 +140,7 @@ const executeScript = async function(script, args, helpRequested) {
 
   try {
     await execute(parsed.args);
-    return finish(EXIT_CODES.success);
+    return finish(process.exitCode ?? EXIT_CODES.success);
   } catch (error) {
     console.error(`Error running command ${script}`, error);
     return finish(EXIT_CODES.runtimeError);
@@ -164,7 +170,11 @@ export async function run(options) {
   const params = argv.filter((param) => param !== '--help' && param !== '-h');
 
   const resolution = resolveCommand(dir, params);
-  const handled = handleResolution(resolution, name, params);
+  if (resolution.type === 'not-found' && resolution.name === 'completion' && params[0] === 'completion') {
+    return runCompletionBuiltin(name, params, helpRequested);
+  }
+
+  const handled = handleResolution(resolution);
   if (handled !== null) {
     return handled;
   }

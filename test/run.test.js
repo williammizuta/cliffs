@@ -1,5 +1,8 @@
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
+import { mkdtempSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { test } from 'node:test';
 import { fileURLToPath } from 'node:url';
 import { run } from '../index.js';
@@ -62,6 +65,18 @@ test('exits 3 when the commands directory does not exist', () => {
     assert.match(error.stderr, /Commands directory not found/u);
     return true;
   });
+});
+
+test('preserves an exit code set by the command itself', () => {
+  runCliExpectingFailure(['exits'], 7);
+});
+
+test('prints a message when the commands directory is empty', async (context) => {
+  const dir = mkdtempSync(join(tmpdir(), 'cliffs-'));
+  const log = context.mock.method(console, 'log', () => null);
+  const code = await run({ commandsDir: dir, name: 'emptycli' });
+  assert.equal(code, 0);
+  assert.equal(log.mock.calls[0].arguments[0], 'No commands found');
 });
 
 test('throws when name or commandsDir is missing', async () => {
