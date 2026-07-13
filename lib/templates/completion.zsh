@@ -16,9 +16,13 @@ __CLI_FN__() {
   fi
 
   if grep -q "^Usage:" <<< "$help_output"; then
-    local -a options
-    options=(${(f)"$(grep -E '^\s*(--[a-zA-Z0-9-]+|-[a-zA-Z])' <<< "$help_output" | grep -oE -- '--[a-zA-Z0-9-]+|-[a-zA-Z]\b' | sort -u)"})
-    compadd -a options
+    if [[ "${words[CURRENT]}" == -* ]]; then
+      local -a options
+      options=(${(f)"$(grep -E '^\s*(--[a-zA-Z0-9-]+|-[a-zA-Z])' <<< "$help_output" | grep -oE -- '--[a-zA-Z0-9-]+|-[a-zA-Z]\b' | sort -u)"})
+      compadd -a options
+      return
+    fi
+    _message -r "$help_output"
     return
   fi
 

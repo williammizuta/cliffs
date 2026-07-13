@@ -148,7 +148,8 @@ The CLI ships a builtin `completion` command (available unless you define your o
 
 ```bash
 # Bash
-echo 'source <(mycli completion bash)' >> ~/.bashrc
+# eval (not `source <(...)`) — sourcing a process substitution silently fails on bash 3.2 (macOS default)
+echo 'eval "$(mycli completion bash)"' >> ~/.bashrc
 # or save it into your completions directory, e.g.:
 #   mycli completion bash > /etc/bash_completion.d/mycli                 (Linux)
 #   mycli completion bash > /opt/homebrew/etc/bash_completion.d/mycli    (macOS + Homebrew)
